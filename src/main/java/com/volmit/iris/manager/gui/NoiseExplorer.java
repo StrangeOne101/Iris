@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.imageio.ImageIO;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -69,6 +70,7 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 	double lz = Double.MAX_VALUE; //MouseY
 	double t;
 	double tz;
+	boolean haltNoise = false;
 
 	public NoiseExplorer()
 	{
@@ -104,7 +106,7 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 		int notches = e.getWheelRotation();
 		if(e.isControlDown())
 		{
-			t = t + ((0.0025 * t) * notches);
+			tz = tz + ((0.0025 * tz) * notches);
 			return;
 		}
 
@@ -119,58 +121,55 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 		{
 			ascale -= Math.abs(scale - ascale) * 0.16;
 		}
-
-		if(scale > ascale)
+		else if (scale > ascale)
 		{
 			ascale += Math.abs(ascale - scale) * 0.16;
 		}
 
-		if(t < tz)
+		if (!haltNoise)
 		{
-			tz -= Math.abs(t - tz) * 0.29;
+			if (t < tz)
+			{
+				tz -= Math.abs(t - tz) * 0.29;
+			}
+			else if (t > tz)
+			{
+				tz += Math.abs(tz - t) * 0.29;
+			}
 		}
 
-		if(t > tz)
-		{
-			tz += Math.abs(tz - t) * 0.29;
-		}
-
-		if(ox < oxp)
+		if (ox < oxp)
 		{
 			oxp -= Math.abs(ox - oxp) * 0.16;
 		}
-
-		if(ox > oxp)
+		else if (ox > oxp)
 		{
 			oxp += Math.abs(oxp - ox) * 0.16;
 		}
 
-		if(oz < ozp)
+		if (oz < ozp)
 		{
 			ozp -= Math.abs(oz - ozp) * 0.16;
 		}
-
-		if(oz > ozp)
+		else if (oz > ozp)
 		{
 			ozp += Math.abs(ozp - oz) * 0.16;
 		}
 
-		if(mx < mxx)
+		if (mx < mxx)
 		{
 			mxx -= Math.abs(mx - mxx) * 0.16;
 		}
-
-		if(mx > mxx)
+		else if (mx > mxx)
 		{
 			mxx += Math.abs(mxx - mx) * 0.16;
 		}
 
-		if(mz < mzz)
+		if (mz < mzz)
 		{
 			mzz -= Math.abs(mz - mzz) * 0.16;
 		}
-
-		if(mz > mzz)
+		else if (mz > mzz)
 		{
 			mzz += Math.abs(mzz - mz) * 0.16;
 		}
@@ -180,11 +179,11 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 		accuracy = down ? accuracy * 4 : accuracy;
 		int v = 1000;
 
-		if(g instanceof Graphics2D)
+		if (g instanceof Graphics2D)
 		{
 			Graphics2D gg = (Graphics2D) g;
 
-			if(getParent().getWidth() != w || getParent().getHeight() != h)
+			if (getParent().getWidth() != w || getParent().getHeight() != h)
 			{
 				w = getParent().getWidth();
 				h = getParent().getHeight();
@@ -302,6 +301,14 @@ public class NoiseExplorer extends JPanel implements MouseWheelListener
 			NoiseStyle s = NoiseStyle.valueOf(b);
 			nv.cng = s.create(RNG.r.nextParallelRNG(RNG.r.imax()));
 		});
+
+		JCheckBox pause = new JCheckBox();
+		pause.addActionListener(e -> {
+			nv.haltNoise = !nv.haltNoise;
+		});
+		pause.setFocusable(false);
+		pause.setToolTipText("Pause Noise");
+		pause.setSize(24, 24);
 
 		combo.setSize(500, 30);
 		JLayeredPane pane = new JLayeredPane();

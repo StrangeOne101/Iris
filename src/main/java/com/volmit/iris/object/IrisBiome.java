@@ -668,4 +668,20 @@ public class IrisBiome extends IrisRegistrant implements IRare
 
 		return getLayers().get(0).get(rng, x, 0, z, idm);
 	}
+
+	public IrisColor getColor() {
+		if (this.color == null) {
+			RandomColor randomColor = new RandomColor(getName().hashCode());
+			RandomColor.Color col = VanillaBiomeMap.getColorType(this.getVanillaDerivative());
+			RandomColor.Luminosity lum = VanillaBiomeMap.getColorLuminosity(this.getVanillaDerivative());
+			int newColorI = randomColor.randomColor(col, RandomColor.SaturationType.RANDOM, lum);
+			//System.out.println("Biome " + getName() + " " + vanillaColor.getRGB() + " -> " + newColorI + " (Hue " + f[0] + ")");
+
+			Color newColor = new Color(newColorI);
+			this.color = new IrisColor();
+			this.color.setRed(newColor.getRed()).setBlue(newColor.getBlue()).setGreen(newColor.getGreen());
+		}
+
+		return this.color;
+	}
 }

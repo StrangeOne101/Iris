@@ -1,5 +1,6 @@
 package com.volmit.iris.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.util.Desc;
 import com.volmit.iris.util.DontObfuscate;
@@ -10,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.awt.*;
+import java.io.IOException;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -53,7 +55,6 @@ public class IrisColor
 				{
 					return Color.decode(v);
 				}
-
 				catch(Throwable e)
 				{
 
@@ -62,6 +63,19 @@ public class IrisColor
 
 			return new Color(red, green, blue);
 		});
+	}
+
+	public int getAsRGB() {
+		if (hex != null) {
+			try {
+				if (hex.startsWith("#")) hex = hex.substring(1);
+				return Integer.parseInt(hex, 16);
+			} catch (NumberFormatException e) {
+				return 0;
+			}
+		}
+
+		return red << 16 | green << 8 | blue;
 	}
 
 	public org.bukkit.Color getBukkitColor()
