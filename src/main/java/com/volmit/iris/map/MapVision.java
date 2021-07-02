@@ -69,20 +69,16 @@ public class MapVision extends JPanel {
     private double scale = 1;
     private boolean realname = false;
 
-    //private Tile[][] tiles = new Tile[128][128];
     private KMap<Integer, Tile> tiles = new KMap<>();
 
-    private Set<Tile> visibleTiles = new ConcurrentSet<>();
-    private Set<Tile> halfDirtyTiles = new ConcurrentSet<>();
+    private Set<Tile> visibleTiles = new ConcurrentSet<>();     //Tiles that are visible on screen
+    private Set<Tile> halfDirtyTiles = new ConcurrentSet<>();   //Tiles that should be drawn next draw
 
-    private short[][] spiral;
+    private short[][] spiral; //See #generateSpiral
 
     private final Color overlay = new Color(80, 80, 80);
     private final Font overlayFont = new Font("Arial", Font.BOLD, 16);
 
-    private static final int targetFPS = 60;
-
-    private Set<JButton> debugButtons = new KSet<>();
     private RollingSequence roll = new RollingSequence(50);
 
     private boolean debug = false;
@@ -113,12 +109,9 @@ public class MapVision extends JPanel {
                 this.draggedOffsetY += yScale * (hy / 2) * (oldScale - scale);
             }
 
-            //this.scaleLarge = (int) Math.max(this.scaleLarge + (mouseWheelEvent.getWheelRotation() * 0.2), 128);
             dirty = true;
             repaint();
             softRecalculate();
-            //J.a(() -> recalculate(), 2); //2 ticks = 0.1s
-            //J.a(() -> repaint(), 1);
         });
         addMouseMotionListener(new MouseMotionListener()
         {
@@ -146,6 +139,9 @@ public class MapVision extends JPanel {
 
     }
 
+    /**
+     * Open this GUI
+     */
     public void open() {
         JFrame frame = new JFrame("Iris Map (" + complex.getData().getDataFolder().getName() + ")");
         frame.add(this);
@@ -201,18 +197,6 @@ public class MapVision extends JPanel {
             } catch(IOException ignored) { }
         }
 
-        if (debugButtons.size() > 0) {
-            int m = 0;
-            FlowLayout layout = new FlowLayout();
-            layout.setHgap(2);
-            layout.setAlignment(FlowLayout.LEFT);
-            for (JButton btn : debugButtons) {
-                layout.addLayoutComponent(btn.getName(), btn);
-            }
-            JPanel panel = new JPanel(layout);
-            frame.add(panel);
-        }
-
         frame.setVisible(true);
         frame.requestFocus();
         frame.toFront();
@@ -229,7 +213,7 @@ public class MapVision extends JPanel {
         offsetX = (int) Math.round(draggedOffsetX * scale) + windowOffsetX;
         offsetY = (int) Math.round(draggedOffsetY * scale) + windowOffsetY;
 
-
+        //If we should do a full repaint of the entire frame. Only done when the zoom level changes, etc
         if (dirty) {
             super.paint(gx); //Clear the frame first
             for (Iterator<Tile> iterator = visibleTiles.iterator(); iterator.hasNext();) {
@@ -327,6 +311,9 @@ public class MapVision extends JPanel {
         }
     };
 
+    /**
+     * Check if we should do a full recalculation of what tiles should be visible
+     */
     public void softRecalculate() {
         short x = (short) (((-draggedOffsetX * scale)) / TILE_SIZE * scale);
         short y = (short) (((-draggedOffsetY * scale)) / TILE_SIZE * scale);
@@ -340,6 +327,10 @@ public class MapVision extends JPanel {
         centerTileY = y;
     }
 
+    /**
+     * Recalculate what tiles should be visible on screen, as well as queue
+     * new tiles to be created
+     */
     public void recalculate() {
         PrecisionStopwatch stopwatch = PrecisionStopwatch.start();
 
@@ -372,10 +363,9 @@ public class MapVision extends JPanel {
         Set<Integer> checked = new HashSet<>();
         Set<Integer> clone = new HashSet(visibleTiles.stream().map((t) ->
                 getTileId(t.getX(), t.getY()))
-                .collect(Collectors.toSet())); //Clone the visible tiles
-        List<Integer> toQueue = new ArrayList<>();   //Using a list to keep the order
+                .collect(Collectors.toSet()));       //Clone the visible tiles
 
-        if (debug) {
+        if (debug) { //These are the 4 corners of the red line that shows the visibility check region for tiles
             debugBorder[0] = -checkSizeX + centerTileX;
             debugBorder[1] = -checkSizeY + centerTileY;
             debugBorder[2] = checkSizeX + 1 + centerTileX;
@@ -398,19 +388,14 @@ public class MapVision extends JPanel {
 
             //If the tile is not already made
             if (!tiles.containsKey(id)) {
-                toQueue.add(id);
+                short[] c = getTileCoords(id);
+                queue(c[0], c[1]); //Queue for creation
             } else {
                 checked.add(id);
             }
         }
 
         clone.removeAll(checked);   //Remove the tiles that we know are onscreen
-
-        //We aren't doing this in the loop above because if the tile was created during the loop, and is
-        for (int id : toQueue) {
-            short[] c = getTileCoords(id);
-            queue(c[0], c[1]);
-        }
 
         for (int id : clone) { //Loop through the invisible tiles and mark them for removal from memory
             short[] c = getTileCoords(id);
@@ -422,14 +407,19 @@ public class MapVision extends JPanel {
         roll.put(stopwatch.getMillis());
     }
 
+    /**
+     * Queue a tile for creation
+     * @param tileX X tile coord
+     * @param tileY Y tile coord
+     */
     public void queue(short tileX, short tileY) {
-        //TODO
+        //If the tile still exists but just isn't visible
         if (tiles.containsKey(getTileId(tileX, tileY))) {
             Tile tile = getTile(tileX, tileY);
             if (visibleTiles.contains(tile)) return;
 
             visibleTiles.add(tile);
-            halfDirtyTiles.add(tile);
+            halfDirtyTiles.add(tile); //Re-render it without doing a full repaint
             //dirty = true;
             return;
         }
@@ -465,7 +455,12 @@ public class MapVision extends JPanel {
         };
     }
 
+    /**
+     * Pend a tile for removal from the screen
+     * @param tile The tile to remove
+     */
     public void queueForRemoval(Tile tile) {
+        //TODO Change from using the async task system as it may be putting strain on the server from being called so often
         J.a(() -> visibleTiles.remove(tile), 20); //Remove visibility in a bit
 
         J.a(() -> { //Remove it completely from memory after 5 seconds if it's still not visible
@@ -473,42 +468,43 @@ public class MapVision extends JPanel {
                 tiles.remove(getTileId(tile.getX(), tile.getY()));
             }
         }, 20 * 6);
-        //TODO
     }
 
     /**
      * Get a tile based on the X and Z coords of the tile
-     * @param tileX
-     * @param tileZ
+     * @param tileX X Coord
+     * @param tileY Y Coord
      * @return
      */
     @Nullable
-    public Tile getTile(short tileX, short tileZ) {
-        return tiles.get(getTileId(tileX, tileZ));
+    public Tile getTile(short tileX, short tileY) {
+        return tiles.get(getTileId(tileX, tileY));
     }
 
-    public int getTileId(short tileX, short tileZ) {
-        return tileX | tileZ << 16;
+    /**
+     * Get an integer that represents a tile's location
+     * @param tileX X Coord
+     * @param tileY Y Coord
+     * @return
+     */
+    public int getTileId(short tileX, short tileY) {
+        return tileX | tileY << 16;
     }
 
+    /**
+     * Converts an integer representing a tiles location back into 2 shorts
+     * @param id The tile integer
+     * @return
+     */
     public short[] getTileCoords(int id) {
         return new short[] {(short) (id & 0x0000FFFF), (short) (id >> 16)};
     }
 
-
-    public void addDebug(String label, Runnable runnable) {
-        JButton button = new JButton();
-        button.setSize(50, 20);
-        button.setText(label != null ? label : this.debugButtons.size() + 1 + "");
-
-        button.addActionListener(al -> {
-            runnable.run();
-            button.setEnabled(false);
-            J.a(() -> button.setEnabled(true), 500);
-        });
-        this.debugButtons.add(button);
-    }
-
+    /**
+     * Generates a 2D array of relative tile locations. This is so we know what order
+     * to search for new tiles in a nice, spiral way
+     * @param size Size of the array
+     */
     public void generateSpiral(int size) {
         if (size % 2 == 0) size++;
         short[][] newSpiral = new short[size * size][2];
@@ -583,6 +579,7 @@ public class MapVision extends JPanel {
         }
     };
 
+    //Our thread pool that draws the tiles for us
     private final ThreadPoolExecutor executorService = (ThreadPoolExecutor) Executors.newFixedThreadPool(8, factory);
 
 
