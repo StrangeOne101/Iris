@@ -78,7 +78,11 @@ public class IrisComplex implements DataProvider
 		return null;
 	}
 
-	public IrisComplex(Engine engine)
+	public IrisComplex(Engine engine) {
+		this(engine, false);
+	}
+
+	public IrisComplex(Engine engine, boolean simple)
 	{
 		int cacheSize = IrisSettings.get().getCache().getStreamingCacheSize();
 		this.rng = new RNG(engine.getWorld().getSeed());
@@ -153,6 +157,11 @@ public class IrisComplex implements DataProvider
 			return getHeight(engine, b, x, z, engine.getWorld().getSeed());
 		}, Interpolated.DOUBLE).cache2D(cacheSize);
 		slopeStream = heightStream.slope(3).interpolate().bilinear(3, 3).cache2D(cacheSize);
+
+		//This stops the class from creating things that aren't needed for a simple IrisComplex class,
+		//such as making a 2D map
+		if (simple) return;
+
 		objectChanceStream = ProceduralStream.ofDouble((x, z) -> {
 			AtomicDouble str = new AtomicDouble(1D);
 			engine.getFramework().getEngineParallax().forEachFeature(x, z, (i)

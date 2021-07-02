@@ -1,11 +1,14 @@
 package com.volmit.iris.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.generator.IrisComplex;
 import com.volmit.iris.scaffold.cache.AtomicCache;
 import com.volmit.iris.generator.noise.CNG;
 import com.volmit.iris.manager.IrisDataManager;
 import com.volmit.iris.scaffold.data.DataProvider;
 import com.volmit.iris.scaffold.engine.IrisAccess;
+import com.volmit.iris.util.RandomColor.SaturationType;
+import com.volmit.iris.util.RandomColor.Luminosity;
 import com.volmit.iris.util.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -672,10 +675,16 @@ public class IrisBiome extends IrisRegistrant implements IRare
 	public IrisColor getColor() {
 		if (this.color == null) {
 			RandomColor randomColor = new RandomColor(getName().hashCode());
+			if (this.getVanillaDerivative() == null) {
+				this.color = new IrisColor();
+				this.color.setRed(255).setGreen(255).setBlue(255);
+				Iris.warn("No vanilla biome found for " + getName());
+			}
 			RandomColor.Color col = VanillaBiomeMap.getColorType(this.getVanillaDerivative());
-			RandomColor.Luminosity lum = VanillaBiomeMap.getColorLuminosity(this.getVanillaDerivative());
-			int newColorI = randomColor.randomColor(col, RandomColor.SaturationType.RANDOM, lum);
-			//System.out.println("Biome " + getName() + " " + vanillaColor.getRGB() + " -> " + newColorI + " (Hue " + f[0] + ")");
+			Luminosity lum = VanillaBiomeMap.getColorLuminosity(this.getVanillaDerivative());
+			SaturationType sat = VanillaBiomeMap.getColorSaturatiom(this.getVanillaDerivative());
+			int newColorI = randomColor.randomColor(col, col == RandomColor.Color.MONOCHROME ? SaturationType.MONOCHROME : sat, lum);
+
 
 			Color newColor = new Color(newColorI);
 			this.color = new IrisColor();

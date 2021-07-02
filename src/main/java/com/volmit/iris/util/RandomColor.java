@@ -10,6 +10,8 @@ import java.util.Random;
  */
 public class RandomColor {
 
+    public static int hueOffset = 0;
+
     public static class ColorInfo {
         Range hueRange;
         Range saturationRange;
@@ -78,7 +80,7 @@ public class RandomColor {
     private Random random;
 
     public static enum SaturationType {
-        RANDOM, MONOCHROME
+        RANDOM, MONOCHROME, HIGH, LOW, MEDIUM
     }
 
     public static enum Luminosity {
@@ -129,7 +131,7 @@ public class RandomColor {
     }
 
     private int getColor(int hue, int saturation, int brightness) {
-        return java.awt.Color.getHSBColor(hue, saturation, brightness).getRGB();
+        return java.awt.Color.getHSBColor((float)(hue + hueOffset % 360) / 360, (float)saturation / 100, (float)brightness / 100).getRGB();
     }
 
     public int randomColor() {
@@ -242,6 +244,12 @@ public class RandomColor {
                     return randomWithin(new Range(0, 100));
                 case MONOCHROME:
                     return 0;
+                case HIGH:
+                    return randomWithin(new Range(75, 100));
+                case MEDIUM:
+                    return randomWithin(new Range(55, 75));
+                case LOW:
+                    return randomWithin(new Range(35, 55));
             }
         }
 
@@ -373,7 +381,7 @@ public class RandomColor {
         lowerBounds1.add(new Range(100, 0));
         defineColor(
                 Color.MONOCHROME.name(),
-                null,
+                new Range(0, 0),
                 lowerBounds1
         );
 
