@@ -8,6 +8,7 @@ import com.volmit.iris.manager.link.BKLink;
 import com.volmit.iris.manager.link.CitizensLink;
 import com.volmit.iris.manager.link.MultiverseCoreLink;
 import com.volmit.iris.manager.link.MythicMobsLink;
+import com.volmit.iris.manager.link.PluginLootRegistry;
 import com.volmit.iris.nms.INMS;
 import com.volmit.iris.object.IrisCompat;
 import com.volmit.iris.scaffold.IrisWorlds;
@@ -42,6 +43,7 @@ public class Iris extends VolmitPlugin
 	public static MultiverseCoreLink linkMultiverseCore;
 	public static MythicMobsLink linkMythicMobs;
 	public static CitizensLink linkCitizens;
+	public static PluginLootRegistry pluginLootRegistry;
 	private static final Queue<Runnable> syncJobs = new ShurikenQueue<>();
 	public static boolean customModels = doesSupportCustomModels();
 	public static boolean awareEntities = doesSupportAwareness();
@@ -170,6 +172,7 @@ public class Iris extends VolmitPlugin
 		linkMultiverseCore = new MultiverseCoreLink();
 		linkBK = new BKLink();
 		linkMythicMobs = new MythicMobsLink();
+		pluginLootRegistry = new PluginLootRegistry();
 		edit = new EditManager();
 		configWatcher = new FileWatcher(getDataFile("settings.json"));
 		J.a(() -> IO.delete(getTemp()));

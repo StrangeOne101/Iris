@@ -117,6 +117,10 @@ public class IrisLoot
 	@Desc("The leather armor color")
 	private String leatherColor = null;
 
+	@DontObfuscate
+	@Desc("Get another plugin to generate this item")
+	private IrisExternalStack pluginItem;
+
 	private final transient AtomicCache<CNG> chance = new AtomicCache<>();
 
 	public Material getType()
@@ -128,6 +132,27 @@ public class IrisLoot
 	{
 		try
 		{
+			if (pluginItem != null) {
+				ItemStack plugItem = pluginItem.getItemStack();
+				if (plugItem == null) {
+					Iris.warn("No item generated from plugin item " + pluginItem.getPlugin() + ":" + pluginItem.getHandler() + ":" + pluginItem.getItem());
+					return new ItemStack(Material.AIR);
+				}
+				ItemMeta meta = plugItem.getItemMeta();
+
+				if(getType().getMaxDurability() > 0 && meta instanceof Damageable)
+				{
+					Damageable d = (Damageable) meta;
+					int max = getType().getMaxDurability();
+					d.setDamage((int) Math.round(Math.max(0, Math.min(max, (1D - rng.d(getMinDurability(), getMaxDurability())) * max))));
+					plugItem.setItemMeta(meta);
+				}
+				if (getMaxAmount() > 1) {
+					plugItem.setAmount(Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
+				}
+				return plugItem;
+			}
+
 			ItemStack is = new ItemStack(getType(), Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
 			ItemMeta m = is.getItemMeta();
 
