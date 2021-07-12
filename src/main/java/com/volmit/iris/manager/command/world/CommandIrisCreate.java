@@ -112,6 +112,7 @@ public class CommandIrisCreate extends MortarCommand
 		IrisDimension dim;
 		File folder = new File(worldName);
 
+		World finalWorld = world;
 		Runnable onDone = () -> {
 
 			sender.sendMessage(worldName + " Spawn Area generated.");
@@ -125,7 +126,7 @@ public class CommandIrisCreate extends MortarCommand
 			{
 				try
 				{
-					sender.player().teleport(world.get().getSpawnLocation());
+					sender.player().teleport(finalWorld.getSpawnLocation());
 				}
 
 				catch(Throwable e)
@@ -142,13 +143,13 @@ public class CommandIrisCreate extends MortarCommand
 				sender.sendMessage("Pregenerating " + worldName + " " + size + " x " + size);
 				sender.sendMessage("Expect server lag during this time. Use '/iris pregen stop' to cancel");
 
-				new Pregenerator(world.get(), size, () ->
+				new Pregenerator(finalWorld, size, () ->
 				{
 					b.set(true);
 				});
 			}
 
-			World ww = world.get();
+			World ww = finalWorld;
 			if (ww == null){
 				sender.sendMessage("World not created, can not finish");
 				return;
@@ -243,14 +244,39 @@ public class CommandIrisCreate extends MortarCommand
 
 			world = wc.createWorld();
 
-				World w = INMS.get().createWorld(wc);
-				world.set(w);
+			done.set(true);
+		}
 
-				J.a(() -> {
-					new Pregenerator(w, pregen.get() * 2);
-				});
 
-				done.set(true);
+		sender.sendMessage(worldName + " Spawn Area generated.");
+		sender.sendMessage("You must remember to either have multiverse installed or use the Bukkit method, otherwise the world will go corrupt!");
+		sender.sendMessage("Wiki: https://volmitsoftware.gitbook.io/iris/getting-started");
+
+		O<Boolean> b = new O<Boolean>();
+		b.set(true);
+
+		if(sender.isPlayer())
+		{
+			try
+			{
+				sender.player().teleport(world.getSpawnLocation());
+			}
+
+			catch(Throwable e)
+			{
+
+			}
+		}
+
+		if(pregen.get() * 2 > 0)
+		{
+			b.set(false);
+			sender.sendMessage("Pregenerating " + worldName + " " + pregen + " x " + pregen);
+			sender.sendMessage("Expect server lag during this time. Use '/iris pregen stop' to cancel");
+
+			new Pregenerator(world, pregen.get() * 2, () ->
+			{
+				b.set(true);
 			});
 		}
 
